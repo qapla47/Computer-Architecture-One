@@ -19,6 +19,9 @@ const CALL = 0b00001111; // call register
 const ST   = 0b00001001; // store
 const IRET = 0b00011010; // return from interrupt 
 const PRA  = 0b00000111; // print alpha 
+const CMP  = 0b00010110; // compare
+const JEQ  = 0b00010011; // jump to provided address if equal flag is true
+const JNE  = 0b00010100; // jump to provided address if equal flat is false
 
 const IM = 5; // R5
 const IS = 6; // R6
@@ -44,6 +47,7 @@ class CPU {
     this.flags = {
         interruptsEnabled: true,
         overflow: false,
+        equal: false,
     };
 
     this.setupBranchTable();
@@ -69,6 +73,9 @@ class CPU {
     bt[ST] = this.ST;
     bt[IRET] = this.IRET;
     bt[PRA] = this.PRA;
+    bt[CMP] = this.CMP;
+    bt[JEQ] = this.JEQ;
+    bt[JNE] = this.JNE;
 
     this.branchTable = bt;
   }
@@ -323,6 +330,38 @@ class CPU {
     // move the pointer down two instructional lines
     this.reg.PC += 2;
   }
+  CMP() {
+    const regA = this.ram.read(this.reg.PC + 1);
+    const regB = this.ram.read(this.reg.PC + 2);
+
+    // if the two values are equal, set the equals flag to true
+    if( this.reg[regA] === this.reg[regB]) {
+        this.flags.equal = true;
+        }
+        // else advance three lines (compare takes two bits)
+    this.reg.PC += 3;
+  }
+  JEQ() {
+      // store in regA the instruction found on the next line of code
+    const regA = this.ram.read(this.reg.PC + 1);
+    // if the equals flag is set
+    if (this.flags.equal) {
+        // advance to the address in regA
+        this.reg.PC = this.reg[regA];
+        // else advance two lines
+    } else this.reg.PC += 2;
+  }
+  JNE() {
+      // if the equals flag is false
+      if (!this.flags.equal) {
+          // NOW read the next instruction into ram
+        const regA = this.ram.read(this.reg.PC + 1);
+        // go to that address
+        this.reg.PC = this.reg[regA];
+        // else advance two lines
+      } else this.reg.PC += 2;
+  }
 }
+
 
 module.exports = CPU;
